@@ -4,6 +4,11 @@
 
 #include <errno.h>
 #include <stddef.h>
+#include <string>
+#include <iostream>
+
+#include <boost/program_options.hpp>
+
 
 #include "CovidSim.h"
 #include "binio.h"
@@ -23,6 +28,9 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif // _OPENMP
+
+
+//************************************************************ To move somewhere else
 
 #ifndef max
 #define max(a,b) ((a) > (b) ? (a) : (b))
@@ -110,8 +118,50 @@ int PlaceDistDistrib[NUM_PLACE_TYPES][MAX_DIST], PlaceSizeDistrib[NUM_PLACE_TYPE
 /* int NumPC,NumPCD; */
 #define MAXINTFILE 10
 
+//***************************************************************************** End - To move somewhere else
+
+namespace po = boost::program_options;
+
 int main(int argc, char* argv[])
 {
+	po::options_description options{"Executatable options"};
+
+    options.add_options()("paramF", boost::program_options::value<std::string>()->default_value(""), "--ParamFile Description--");
+    options.add_options()("densityF", boost::program_options::value<std::string>()->default_value(""), "--DensityFile Description--");
+    options.add_options()("networkF", boost::program_options::value<std::string>()->default_value(""), "--NetworkFile Description--");
+    options.add_options()("airTravelF", boost::program_options::value<std::string>()->default_value(""), "--AirTravelFile Description--");
+	options.add_options()("schoolF", boost::program_options::value<std::string>()->default_value(""), "--SchoolFile Description--");
+	options.add_options()("regdemogF", boost::program_options::value<std::string>()->default_value(""), "--RegDemogFile Description--");
+	options.add_options()("interventionFilePrefix", boost::program_options::value<std::string>()->default_value(""), "--InterventionFile Description--");
+	options.add_options()("interventionFilesRange", boost::program_options::value<int>()->default_value(1), "--InterventionFiles range ex:(prefix0.txt, prefix1.txt, etc...)--");
+	//TODO: Need to see if there's a better way than a range, if there is not too much maybe make a multiple use option like -> interventionFile=blap.txt interventionFile=bloup.txt
+	options.add_options()("preparamF", boost::program_options::value<std::string>()->default_value(""), "--PreParamFile Description--");
+
+
+	po::variables_map varMap;
+	po::store(po::parse_command_line(argc, argv, options), varMap);
+	po::notify(varMap);    
+
+	if(varMap.count("help")) 
+	{
+    	std::cout << options << std::endl;
+    	return 1;
+	}
+
+	std::vector<std::string> allInputsVector = {"paramF", "densityF", "networkF", "airTravelF", "schoolF", "regdemogF", "interventionF", "preparamF"};
+
+	//Checking all input variables to see if some are missing, might be changed sometime if needed
+	for(auto inputVal : allInputsVector)
+	{
+		if(!varMap.count(inputVal))
+		{
+			std::cout <<  inputVal + " parameter not found, aborting?" << std::endl;
+			std::cout << "Use -h for more info on input parameters" << std::endl;
+			return 1;
+		}
+	}
+
+	//What is this buffer at the end?
 	char ParamFile[1024]{}, DensityFile[1024]{}, NetworkFile[1024]{}, AirTravelFile[1024]{}, SchoolFile[1024]{}, RegDemogFile[1024]{}, InterventionFile[MAXINTFILE][1024]{}, PreParamFile[1024]{}, buf[2048]{}, * sep;
 	int i, GotP, GotPP, GotO, GotL, GotS, GotAP, GotScF, Perr, cl;
 
