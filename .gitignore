@@ -16,3 +16,9 @@ build_*/
 *.vcxproj.user
 tests/us-output/
 tests/regressiontest_UK_100th/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+covid-sim_build/
+

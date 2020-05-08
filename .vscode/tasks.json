@@ -1,0 +1,29 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "options": {
+        "cwd": "${workspaceRoot}"
+    },
+    "tasks": [
+        {
+            "label": "cmake",
+            "args": ["-DCMAKE_BUILD_TYPE=Debug"],
+            "type": "shell",
+            "command": "cmake",
+            "isBackground": true
+        },
+        {
+            "label": "make",
+            "args": ["-j16"], // You can change the -j16 to like -j4, I just like it when my PC screams XD
+            "type": "shell",
+            "command": "make",
+            "isBackground": true
+        },
+        {
+            "label": "CSBuild",
+            "dependsOn": ["cmake", "make"],
+            "group":"build",
+        }
+    ]
+}
