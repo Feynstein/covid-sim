@@ -1,16 +1,39 @@
 #pragma once
 
-#ifndef COVIDSIM_PARAM_H_INCLUDED_
-#define COVIDSIM_PARAM_H_INCLUDED_
+// #ifndef COVIDSIM_PARAM_H_INCLUDED_ //nope because of pragma once
+// #define COVIDSIM_PARAM_H_INCLUDED_
+
+#include <unordered_map>
+#include <any> // Needs C++ 17  but very efficient
 
 #include "Country.h"
-#include "Constants.h"
+#include "Defines.h"
+
+
+// Will use an unordered map of std::any so that there is no need to have all these definitions in the code, it will be in some kind of help txt document
+class Parameters
+{
+	public:
+		Parameters();
+
+	private:
+
+	std::unordered_map<std::string, std::any> m_dataMap;
+
+};
+
 
 /**
  * @brief Stores the parameters for the simulation.
  *
  */
 typedef struct PARAM {
+
+	// P.PlaceCloseIndepThresh = P.LoadSaveNetwork = P.DoHeteroDensity = P.DoPeriodicBoundaries = P.DoSchoolFile = P.DoAdunitDemog = P.OutputDensFile = P.MaxNumThreads = P.DoInterventionFile = 0;
+	// P.PreControlClusterIdCaseThreshold = 0;
+	// P.R0scale = 1.0;
+	// P.KernelOffsetScale = P.KernelPowerScale = 1.0; //added this so that kernel parameters are only changed if input from the command line: ggilani - 15/10/2014
+	// P.DoSaveSnapshot = P.DoLoadSnapshot  = 0;
 
 
 	int PopSize; /**< Population size */
@@ -276,8 +299,10 @@ typedef struct PARAM {
 	int OldPersAge;
 	double ThreeChildFivePersProb;
 	int OlderGenGap;
-} param;
+}param;
 
 extern param P;
 
-#endif // COVIDSIM_PARAM_H_INCLUDED_
+typedef sP<Parameters> ParametersSP;
+
+// #endif // COVIDSIM_PARAM_H_INCLUDED_

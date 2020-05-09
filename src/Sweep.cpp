@@ -11,7 +11,7 @@
 #include "Rand.h"
 #include "Model.h"
 #include "ModelMacros.h"
-#include "Param.h"
+#include "Parameters.h"
 #include "Sweep.h"
 #include "SharedFuncs.h"
 #include "Update.h"

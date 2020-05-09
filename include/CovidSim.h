@@ -17,7 +17,7 @@
 #include <time.h>
 
 #include "Country.h"
-#include "Constants.h"
+#include "Defines.h"
 
   /*
 	#define HOST_TREATED(x) (0)

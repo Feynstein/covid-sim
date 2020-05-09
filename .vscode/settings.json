@@ -73,7 +73,8 @@
         "set": "cpp",
         "string": "cpp",
         "cfenv": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "bit": "cpp"
     },
     "python.linting.pylintEnabled": true,
 
@@ -81,6 +82,7 @@
     
     "editor.insertSpaces": true,
     "jira-plugin.workingProject": "",
+    "C_Cpp.errorSquiggles": "Disabled",
     // "window.titleBarStyle": "native"
 
 }

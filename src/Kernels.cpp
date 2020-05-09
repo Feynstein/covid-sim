@@ -4,7 +4,7 @@
 #include "Kernels.h"
 #include "Error.h"
 #include "Dist.h"
-#include "Param.h"
+#include "Parameters.h"
 
 double(*Kernel)(double);
 

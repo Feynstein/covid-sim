@@ -9,7 +9,7 @@
 #include "Kernels.h"
 #include "Dist.h"
 #include "MachineDefines.h"
-#include "Param.h"
+#include "Parameters.h"
 #include "SetupModel.h"
 #include "Model.h"
 #include "ModelMacros.h"

@@ -1,8 +1,21 @@
-#ifndef COVIDSIM_CONSTANTS_H_INCLUDED_
-#define COVIDSIM_CONSTANTS_H_INCLUDED_
+#pragma once
+//
+//  Defines.h
+//
+//  Created by Feynstein on 05/08/2020
+//
+// All non-useless defines go here
+#include <math.h>
+#include <boost/shared_ptr.hpp>
 
-#define PI 3.1415926535
-#define EARTHRADIUS 6366707.0
+#define sP  boost::shared_ptr
+#define wP  boost::weak_ptr
+#define sA  boost::shared_array
+
+
+//#define PI 3.1415926535  nope .. 
+#define PI M_PI
+#define EARTHRADIUS 6366707.0 //????
 
 #define OUTPUT_DIST_SCALE 1000
 #define MAX_PLACE_SIZE 20000
@@ -37,4 +50,4 @@
 
 #define MAX_NUM_INTERVENTION_CHANGE_TIMES	100	//// may want to make this intervention-specifc, but keep simple for now.
 
-#endif // COVIDSIM_CONSTANTS_H_INCLUDED_
+

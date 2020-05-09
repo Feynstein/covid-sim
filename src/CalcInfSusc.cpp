@@ -1,11 +1,11 @@
 #include <math.h>
 
 #include "CalcInfSusc.h"
-#include "Constants.h"
+#include "Defines.h"
 #include "InfStat.h"
 #include "Model.h"
 #include "ModelMacros.h"
-#include "Param.h"
+#include "Parameters.h"
 
 //// Infectiousness functions (House, Place, Spatial, Person). Idea is that in addition to a person's personal infectiousness, they have separate "infectiousnesses" for their house, place and on other cells (spatial). 
 //// These functions consider one person only. A person has an infectiousness that is independent of other people. Slightly different therefore than susceptibility functions. 

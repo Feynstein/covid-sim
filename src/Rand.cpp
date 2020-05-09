@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include "Rand.h"
 #include "MachineDefines.h"
-#include "Constants.h"
+#include "Defines.h"
 #include "Error.h"
 #ifdef _OPENMP
 #include <omp.h>

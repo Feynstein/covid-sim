@@ -6,6 +6,8 @@ cmake_minimum_required (VERSION 3.8)
 project(CovidSim C CXX)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON) 
 
+
+
 set(default_build_type "RelWithDebInfo")
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -42,8 +44,7 @@ endif()
 file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # Set a default build type if none was specified
 
 # Project initialisation
@@ -53,7 +54,7 @@ add_definitions(-DUSE_OPENMP)
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL  "3.12.4") 
 		cmake_policy(SET CMP0074 NEW) 
 endif()
-find_package(Boost 1.58 REQUIRED COMPONENTS
+find_package(Boost 1.73 REQUIRED COMPONENTS
 		atomic
 		chrono
 		date_time
@@ -67,11 +68,11 @@ find_package(Boost 1.58 REQUIRED COMPONENTS
 		program_options
 		random
 		serialization
-		signals
 		system
 		thread
 		timer)
 include_directories( ${Boost_INCLUDE_DIR} )
+
 
 
 if(USE_OPENMP)
@@ -96,16 +97,19 @@ file(GLOB covid-sim_HEADERS "include/*.h")
 add_executable(CovidSim ${covid-sim_SOURCES} "CovidSim.cpp")
 target_include_directories(CovidSim PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if(USE_OPENMP)
-  target_link_libraries(CovidSim PUBLIC OpenMP::OpenMP_CXX)
+  target_link_libraries(CovidSim PUBLIC OpenMP::OpenMP_CXX ${Boost_LIBRARIES})
 endif()
 if(WIN32)
   target_link_libraries(CovidSim PUBLIC Gdiplus.lib Vfw32.lib)
   target_compile_definitions(CovidSim PUBLIC  "_CRT_SECURE_NO_WARNINGS")
 elseif(UNIX)
   target_compile_definitions(CovidSim PUBLIC UNIX)
+  target_link_libraries(CovidSim PUBLIC ${Boost_LIBRARIES})
 else()
   message(FATAL_ERROR "Unknown operating system type: ${CMAKE_SYSTEM_NAME}")
 endif()
+
+set_property(TARGET CovidSim PROPERTY CXX_STANDARD 17)
 
 source_group("headers" FILES ${covid-sim_HEADERS})
 source_group("sources" FILES ${covid-sim_SOURCES})

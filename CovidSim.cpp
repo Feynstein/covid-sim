@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <string>
 #include <iostream>
+#include <cassert>
 
 #include <boost/program_options.hpp>
 
@@ -18,7 +19,7 @@
 #include "Kernels.h"
 #include "Bitmap.h"
 #include "Model.h"
-#include "Param.h"
+#include "Parameters.h"
 #include "SetupModel.h"
 #include "SharedFuncs.h"
 #include "ModelMacros.h"
@@ -36,7 +37,7 @@
 #define max(a,b) ((a) > (b) ? (a) : (b))
 #endif
 #ifndef min
-#define min(a,b) ((a) < (b) ? (a) : (b))
+#define min(a,b) ((a) < (b) ? (a) : (b))  // already implemented in std
 #endif
 
 void ReadParams(char*, char*);
@@ -126,16 +127,15 @@ int main(int argc, char* argv[])
 {
 	po::options_description options{"Executatable options"};
 
-    options.add_options()("paramF", boost::program_options::value<std::string>()->default_value(""), "--ParamFile Description--");
-    options.add_options()("densityF", boost::program_options::value<std::string>()->default_value(""), "--DensityFile Description--");
-    options.add_options()("networkF", boost::program_options::value<std::string>()->default_value(""), "--NetworkFile Description--");
-    options.add_options()("airTravelF", boost::program_options::value<std::string>()->default_value(""), "--AirTravelFile Description--");
-	options.add_options()("schoolF", boost::program_options::value<std::string>()->default_value(""), "--SchoolFile Description--");
-	options.add_options()("regdemogF", boost::program_options::value<std::string>()->default_value(""), "--RegDemogFile Description--");
-	options.add_options()("interventionFilePrefix", boost::program_options::value<std::string>()->default_value(""), "--InterventionFile Description--");
-	options.add_options()("interventionFilesRange", boost::program_options::value<int>()->default_value(1), "--InterventionFiles range ex:(prefix0.txt, prefix1.txt, etc...)--");
-	//TODO: Need to see if there's a better way than a range, if there is not too much maybe make a multiple use option like -> interventionFile=blap.txt interventionFile=bloup.txt
+    options.add_options()("paramF", po::value<std::string>()->default_value(""), "--ParamFile Description--");
+    options.add_options()("densityF", po::value<std::string>()->default_value(""), "--DensityFile Description--");
+    options.add_options()("networkF", po::value<std::string>()->default_value(""), "--NetworkFile Description--");
+    options.add_options()("airTravelF", po::value<std::string>()->default_value(""), "--AirTravelFile Description--");
+	options.add_options()("schoolF", po::value<std::string>()->default_value(""), "--SchoolFile Description--");
+	options.add_options()("regdemogF", po::value<std::string>()->default_value(""), "--RegDemogFile Description--");
+	options.add_options()("interventionFiles", po::value<std::vector<std::string>>()->multitoken() , "--InterventionFiles Description--");
 	options.add_options()("preparamF", boost::program_options::value<std::string>()->default_value(""), "--PreParamFile Description--");
+
 
 
 	po::variables_map varMap;
@@ -153,7 +153,7 @@ int main(int argc, char* argv[])
 	//Checking all input variables to see if some are missing, might be changed sometime if needed
 	for(auto inputVal : allInputsVector)
 	{
-		if(!varMap.count(inputVal))
+		if(varMap[inputVal].empty())
 		{
 			std::cout <<  inputVal + " parameter not found, aborting?" << std::endl;
 			std::cout << "Use -h for more info on input parameters" << std::endl;
@@ -161,6 +161,14 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	std::vector<std::string> interventionFiles = varMap["interventionFiles"].as<std::vector<std::string>>();
+
+
+
+// }
+
+// int main_legacy(int argc, char* argv[])
+// {
 	//What is this buffer at the end?
 	char ParamFile[1024]{}, DensityFile[1024]{}, NetworkFile[1024]{}, AirTravelFile[1024]{}, SchoolFile[1024]{}, RegDemogFile[1024]{}, InterventionFile[MAXINTFILE][1024]{}, PreParamFile[1024]{}, buf[2048]{}, * sep;
 	int i, GotP, GotPP, GotO, GotL, GotS, GotAP, GotScF, Perr, cl;
@@ -191,7 +199,7 @@ int main(int argc, char* argv[])
 		P.KernelOffsetScale = P.KernelPowerScale = 1.0; //added this so that kernel parameters are only changed if input from the command line: ggilani - 15/10/2014
 		P.DoSaveSnapshot = P.DoLoadSnapshot  = 0;
 
-		//// scroll through command line arguments, anticipating what they can be using various if statements.
+		//// scroll through command line arguments, anticipating what they can be using various if statements. ---> lol
 		for (i = 1; i < argc - 4; i++)
 		{
 			if ((argv[i][0] != '/') && ((argv[i][2] != ':') && (argv[i][3] != ':'))) Perr = 1;

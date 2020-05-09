@@ -1,11 +1,10 @@
 #pragma once
 
-#ifndef COVIDSIM_MODEL_H_INCLUDED_
-#define COVIDSIM_MODEL_H_INCLUDED_
+
 
 #include "Country.h"
 #include "MachineDefines.h"
-#include "Constants.h"
+#include "Defines.h"
 
 
 //// need to test that inequalities in IncubRecoverySweep can be replaced if you initialize to USHRT_MAX, rather than zero.
@@ -360,4 +359,4 @@ extern double PeakHeightSum, PeakHeightSS, PeakTimeSum, PeakTimeSS;
 
 extern int DoInitUpdateProbs;
 
-#endif // COVIDSIM_MODEL_H_INCLUDED_
+// #endif // COVIDSIM_MODEL_H_INCLUDED_

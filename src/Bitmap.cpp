@@ -7,7 +7,7 @@
 #include "binio.h"
 #include "Bitmap.h"
 #include "Error.h"
-#include "Param.h"
+#include "Parameters.h"
 #include "Model.h"
 
 //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** 
@@ -26,7 +26,7 @@ static CLSID  encoderClsid;
 
 static unsigned char* bmf, *bmPixels, *bmp;
 // externs from CovidSim.cpp
-// TODO: move these to a header files
+// TODO: move these to a header files ----> NO
 extern char OutFile[1024], OutFileBase[1024];
 
 void CaptureBitmap()

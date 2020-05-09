@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef COVIDSIM_BITMAP_H_INCLUDED_
-#define COVIDSIM_BITMAP_H_INCLUDED_
+// #ifndef COVIDSIM_BITMAP_H_INCLUDED_
+// #define COVIDSIM_BITMAP_H_INCLUDED_
 
 #include <stdint.h>
 
@@ -56,4 +56,4 @@ void CaptureBitmap();
 void OutputBitmap(int);
 void InitBMHead();
 
-#endif // COVIDSIM_BITMAP_H_INCLUDED_
+// #endif // COVIDSIM_BITMAP_H_INCLUDED_

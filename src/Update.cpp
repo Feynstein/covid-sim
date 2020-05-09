@@ -5,7 +5,7 @@
 #include "Update.h"
 #include "Model.h"
 #include "ModelMacros.h"
-#include "Param.h"
+#include "Parameters.h"
 #include "InfStat.h"
 #include "Bitmap.h"
 #include "Rand.h"

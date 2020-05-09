@@ -1,9 +1,9 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "Constants.h"
+#include "Defines.h"
 #include "Dist.h"
-#include "Param.h"
+#include "Parameters.h"
 
 double sinx[361], cosx[361], asin2sqx[1001];
 

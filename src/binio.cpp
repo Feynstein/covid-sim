@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "binio.h"
-#include "Param.h"
+#include "Parameters.h"
 /*#include "..\miniz_v111b\miniz.c"
 */
 #define COMP_LEVEL 1
