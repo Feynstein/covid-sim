@@ -55,14 +55,3 @@
         }
     ]
 }
-
-options.add_options()("adminF", /*po::value<std::string>()->default_value(""),*/ "--adminFile Description--");
-	options.add_options()("preparamF", /*po::value<std::string>()->default_value(""),*/ "--PreParamFile Description--");
-    options.add_options()("paramF", /*po::value<std::string>()->default_value(""),*/ "--ParamFile Description--");
-    options.add_options()("densityF", /*po::value<std::string>()->default_value(""),*/ "--DensityFile Description--");
-    options.add_options()("networkLoad", /*po::value<std::string>()->default_value(""),*/ "--NetworkFile Load Description--");
-	options.add_options()("networkSave", /*po::value<std::string>()->default_value(""),*/ "--NetworkFile Save Description--");
-    options.add_options()("airTravelF", /*po::value<std::string>()->default_value(""),*/ "--AirTravelFile Description--");
-	options.add_options()("schoolF", /*po::value<std::string>()->default_value(""),*/ "--SchoolFile Description--");
-	options.add_options()("regdemogF", /*po::value<std::string>()->default_value(""),*/ "--RegDemogFile Description--");
-	options.add_options()("interventionFiles", po::value<std::vector<std::string>>()->multitoken() , "--InterventionFiles Description--");
