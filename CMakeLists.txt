@@ -54,8 +54,8 @@ add_definitions(-DUSE_OPENMP)
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL  "3.12.4") 
 		cmake_policy(SET CMP0074 NEW) 
 endif()
-find_package(Boost 1.73 REQUIRED COMPONENTS
-		atomic
+find_package(Boost 1.71 REQUIRED COMPONENTS #Change if you don't have that version ... it's pretty recent but everything we use should be older stuff --- 
+                                            #I had a hard time with Ubuntu20 because it seems like some packages are missing from the ppas... anyway
 		chrono
 		date_time
 		filesystem

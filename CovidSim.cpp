@@ -10,28 +10,28 @@
 #include <boost/program_options.hpp>
 
 
-#include "CovidSim.h"
-#include "binio.h"
-#include "Rand.h"
-#include "Error.h"
-#include "Dist.h"
-#include "Kernels.h"
-#include "Bitmap.h"
-#include "Model.h"
+// #include "CovidSim.h"
+// #include "binio.h"
+// #include "Rand.h"
+// #include "Error.h"
+// #include "Dist.h"
+// #include "Kernels.h"
+// #include "Bitmap.h"
+// #include "Model.h"
 #include "Parameters.h"
-#include "SetupModel.h"
-#include "SharedFuncs.h"
-#include "ModelMacros.h"
-#include "InfStat.h"
-#include "CalcInfSusc.h"
-#include "Update.h"
+// #include "SetupModel.h"
+// #include "SharedFuncs.h"
+// #include "ModelMacros.h"
+// #include "InfStat.h"
+// #include "CalcInfSusc.h"
+// #include "Update.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif // _OPENMP
 
 
 //************************************************************ To move somewhere else
-
+/*
 #ifndef max
 #define max(a,b) ((a) > (b) ? (a) : (b))
 #endif
@@ -124,19 +124,20 @@ namespace po = boost::program_options;
 
 int main(int argc, char* argv[])
 {
-	po::options_description options{"Executatable options"};
+	po::options_description options{"Executable options"};
 
 	options.add_options()("nThread", po::value<int>()->default_value(1), "The number of parallel threads to use");
 	options.add_options()("adminF", po::value<std::string>()->default_value(""), "--adminFile Description--");
 	options.add_options()("preParamF", po::value<std::string>()->default_value(""), "--PreParamFile Description--");
     options.add_options()("paramF", po::value<std::string>()->default_value(""), "--ParamFile Description--");
-    options.add_options()("densityF", po::value<std::string>()->default_value(""), "--DensityFile Description--");
+    options.add_options()("popDensityF", po::value<std::string>()->default_value(""), "--DensityFile Description--");
     options.add_options()("networkLoad", po::value<std::string>()->default_value(""), "--NetworkFile Load Description--");
 	options.add_options()("networkSave", po::value<std::string>()->default_value(""), "--NetworkFile Save Description--");
     options.add_options()("airTravelF", po::value<std::string>()->default_value(""), "--AirTravelFile Description--");
 	options.add_options()("schoolF", po::value<std::string>()->default_value(""), "--SchoolFile Description--");
 	options.add_options()("regDemogF", po::value<std::string>()->default_value(""), "--RegDemogFile Description--");
 	options.add_options()("interventionFiles", po::value<std::vector<std::string>>()->multitoken() , "--InterventionFiles Description--");
+	options.add_options()("outputPrefix", po::value<std::string>()->default_value(""), "--Output Prefix Description--");
 	options.add_options()("setupSeed1", po::value<long int>()->default_value(42), "Setup random seed 1");
 	options.add_options()("setupSeed2", po::value<long int>()->default_value(42), "Setup random seed 2");
 	options.add_options()("runSeed1", po::value<long int>()->default_value(42), "Run random seed 1");
@@ -155,7 +156,7 @@ int main(int argc, char* argv[])
     	return 1;
 	}
 
-	std::vector<std::string> allInputsVector = {"paramF", "densityF", "networkLoad", "networkSave", "airTravelF", "schoolF", "regDemogF", "interventionFiles", "preParamF"};
+	std::vector<std::string> allInputsVector = {"paramF", "popDensityF", "networkLoad", "networkSave", "airTravelF", "schoolF", "regDemogF", "interventionFiles", "preParamF"};
 
 	//Checking all input variables to see if some are missing, might be changed sometime if needed
 	for(auto inputVal : allInputsVector)
@@ -166,179 +167,178 @@ int main(int argc, char* argv[])
 			std::cout << "Use -h for more info on input parameters" << std::endl;
 			return 1;
 		}
+		
 	}
 
 	std::vector<std::string> interventionFiles = varMap["interventionFiles"].as<std::vector<std::string>>();
 
+	options.add_options()("nThread", po::value<int>()->default_value(1), "The number of parallel threads to use");
+	options.add_options()("adminF", po::value<std::string>()->default_value(""), "--adminFile Description--");
+	options.add_options()("preParamF", po::value<std::string>()->default_value(""), "--PreParamFile Description--");
+    options.add_options()("paramF", po::value<std::string>()->default_value(""), "--ParamFile Description--");
+    options.add_options()("popDensityF", po::value<std::string>()->default_value(""), "--Population Density File Description--");
+    options.add_options()("networkLoad", po::value<std::string>()->default_value(""), "--NetworkFile Load Description--");
+	options.add_options()("networkSave", po::value<std::string>()->default_value(""), "--NetworkFile Save Description--");
+    options.add_options()("airTravelF", po::value<std::string>()->default_value(""), "--AirTravelFile Description--");
+	options.add_options()("schoolF", po::value<std::string>()->default_value(""), "--SchoolFile Description--");
+	options.add_options()("regDemogF", po::value<std::string>()->default_value(""), "--RegDemogFile Description--");
+	options.add_options()("interventionFiles", po::value<std::vector<std::string>>()->multitoken() , "--InterventionFiles Description--");
+	options.add_options()("outputPrefix", po::value<std::string>()->default_value(""), "--Output Prefix Description--");
 
+	// Will have to load them like that for now... but there might be a way to like setup a vector of types or something and load them in the verif loop above
 	ParametersSP runParametersTrolley(new Parameters());
+	runParametersTrolley->SetValue("NThread", varMap["nThread"].as<int>());
+	runParametersTrolley->SetValue("AdminParamFile", varMap["adminF"].as<std::string>());
+	runParametersTrolley->SetValue("PreParamFile", varMap["preParamF"].as<std::string>());
+	runParametersTrolley->SetValue("ParamFile", varMap["paramF"].as<std::string>());
+	runParametersTrolley->SetValue("PopDensityFile", varMap["popDensityF"].as<std::string>());
+	runParametersTrolley->SetValue("NetworkFileLoad", varMap["networkLoad"].as<std::string>());
+	runParametersTrolley->SetValue("NetworkFileSave", varMap["networkSave"].as<std::string>());
+	runParametersTrolley->SetValue("NetworkSave", varMap["networkSave"].as<std::string>());
 	runParametersTrolley->SetValue("SetupSeed1", varMap["setupSeed1"].as<long int>() );
 	runParametersTrolley->SetValue("SetupSeed2", varMap["setupSeed2"].as<long int>());
 	runParametersTrolley->SetValue("RunSeed1", varMap["runSeed1"].as<long int>());
 	runParametersTrolley->SetValue("RunSeed2", varMap["runSeed2"].as<long int>());
 
-	int bloup = std::any_cast<long int>(runParametersTrolley->GetValue("RunSeed1"));
+	//Will start with the lightest run for now and add the other parameters eventually
+	
+	//No idea why its there gonna leave it for now
+	// Perr = 0;
+	// fprintf(stderr, "sizeof(int)=%i sizeof(long)=%i sizeof(float)=%i sizeof(double)=%i sizeof(unsigned short int)=%i sizeof(int *)=%i\n", (int)sizeof(int), (int)sizeof(long), (int)sizeof(float), (int)sizeof(double), (int)sizeof(unsigned short int), (int)sizeof(int*));
+	// cl = clock();
 
-// }
+	int test1 = std::any_cast<int>(runParametersTrolley->GetValue("DoHeteroDensity"));
+	std::cout << "Bloup Test:" << test1 << std::endl;
+	runParametersTrolley->ModifyValue("DoHeteroDensity", 1);
 
-// int main_legacy(int argc, char* argv[])
-// {
-	//What is this buffer at the end?
-	char ParamFile[1024]{}, DensityFile[1024]{}, NetworkFile[1024]{}, AirTravelFile[1024]{}, SchoolFile[1024]{}, RegDemogFile[1024]{}, InterventionFile[MAXINTFILE][1024]{}, PreParamFile[1024]{}, buf[2048]{}, * sep;
-	int i, GotP, GotPP, GotO, GotL, GotS, GotAP, GotScF, Perr, cl;
+	test1 = std::any_cast<int>(runParametersTrolley->GetValue("DoHeteroDensity"));
+	std::cout << "Post bloup test:" << test1 << std::endl;
 
-	///// Flags to ensure various parameters have been read; set to false as default.
-	GotP = GotO = GotL = GotS = GotAP = GotScF = GotPP = 0;
 
-	Perr = 0;
-	fprintf(stderr, "sizeof(int)=%i sizeof(long)=%i sizeof(float)=%i sizeof(double)=%i sizeof(unsigned short int)=%i sizeof(int *)=%i\n", (int)sizeof(int), (int)sizeof(long), (int)sizeof(float), (int)sizeof(double), (int)sizeof(unsigned short int), (int)sizeof(int*));
-	cl = clock();
-
-	///// Read in command line arguments - lots of things, e.g. random number seeds; (pre)parameter files; binary files; population data; output directory? etc.
-
-	if (argc < 7)	Perr = 1;
-	else
-	{
-		
-		
-
-		
-		//// scroll through command line arguments, anticipating what they can be using various if statements. ---> lol
-		for (i = 1; i < argc - 4; i++)
-		{
-			if ((argv[i][0] != '/') && ((argv[i][2] != ':') && (argv[i][3] != ':'))) Perr = 1;
-			if (argv[i][1] == 'P' && argv[i][2] == ':')
-			{
-				GotP = 1;
-				sscanf(&argv[i][3], "%s", ParamFile);
-			}
-			else if (argv[i][1] == 'O' && argv[i][2] == ':')
-			{
-				GotO = 1;
-				sscanf(&argv[i][3], "%s", OutFileBase);
-			}
-			else if (argv[i][1] == 'D' && argv[i][2] == ':')
-			{
-				sscanf(&argv[i][3], "%s", DensityFile);
-				P.DoHeteroDensity = 1;
-				P.DoPeriodicBoundaries = 0;
-			}
-			else if (argv[i][1] == 'A' && argv[i][2] == ':')
-			{
-				sscanf(&argv[i][3], "%s", AdunitFile);
-			}
-			else if (argv[i][1] == 'L' && argv[i][2] == ':')
-			{
-				GotL = 1;
-				P.LoadSaveNetwork = 1;
-				sscanf(&argv[i][3], "%s", NetworkFile);
-			}
-			else if (argv[i][1] == 'S' && argv[i][2] == ':')
-			{
-				P.LoadSaveNetwork = 2;
-				GotS = 1;
-				sscanf(&argv[i][3], "%s", NetworkFile);
-			}
-			else if (argv[i][1] == 'R' && argv[i][2] == ':')
-			{
-				sscanf(&argv[i][3], "%lf", &P.R0scale);
-			}
-			else if (argv[i][1] == 'K' && argv[i][2] == 'P' && argv[i][3] == ':') //added Kernel Power and Offset scaling so that it can easily be altered from the command line in order to vary the kernel quickly: ggilani - 15/10/14
-			{
-				sscanf(&argv[i][4], "%lf", &P.KernelPowerScale);
-			}
-			else if (argv[i][1] == 'K' && argv[i][2] == 'O' && argv[i][3] == ':')
-			{
-				sscanf(&argv[i][4], "%lf", &P.KernelOffsetScale);
-			}
-			else if (argv[i][1] == 'C' && argv[i][2] == 'L' && argv[i][3] == 'P' && argv[i][4] == '1' && argv[i][5] == ':') // generic command line specified param - matched to #1 in param file
-			{
-				sscanf(&argv[i][6], "%lf", &P.clP1);
-			}
-			else if (argv[i][1] == 'C' && argv[i][2] == 'L' && argv[i][3] == 'P' && argv[i][4] == '2' && argv[i][5] == ':') // generic command line specified param - matched to #2 in param file
-			{
-				sscanf(&argv[i][6], "%lf", &P.clP2);
-			}
-			else if(argv[i][1] == 'C' && argv[i][2] == 'L' && argv[i][3] == 'P' && argv[i][4] == '3' && argv[i][5] == ':') // generic command line specified param - matched to #3 in param file
-				{
-				sscanf(&argv[i][6], "%lf", &P.clP3);
-				}
-			else if(argv[i][1] == 'C' && argv[i][2] == 'L' && argv[i][3] == 'P' && argv[i][4] == '4' && argv[i][5] == ':') // generic command line specified param - matched to #4 in param file
-				{
-				sscanf(&argv[i][6], "%lf", &P.clP4);
-				}
-			else if(argv[i][1] == 'C' && argv[i][2] == 'L' && argv[i][3] == 'P' && argv[i][4] == '5' && argv[i][5] == ':') // generic command line specified param - matched to #5 in param file
-				{
-				sscanf(&argv[i][6], "%lf", &P.clP5);
-				}
-			else if(argv[i][1] == 'C' && argv[i][2] == 'L' && argv[i][3] == 'P' && argv[i][4] == '6' && argv[i][5] == ':') // generic command line specified param - matched to #6 in param file
-				{
-				sscanf(&argv[i][6], "%lf", &P.clP6);
-				}
-			else if (argv[i][1] == 'A' && argv[i][2] == 'P' && argv[i][3] == ':')
-			{
-				GotAP = 1;
-				sscanf(&argv[i][3], "%s", AirTravelFile);
-			}
-			else if (argv[i][1] == 's' && argv[i][2] == ':')
-			{
-				GotScF = 1;
-				sscanf(&argv[i][3], "%s", SchoolFile);
-			}
-			else if (argv[i][1] == 'T' && argv[i][2] == ':')
-			{
-				sscanf(&argv[i][3], "%i", &P.PreControlClusterIdCaseThreshold);
-			}
-			else if (argv[i][1] == 'C' && argv[i][2] == ':')
-			{
-				sscanf(&argv[i][3], "%i", &P.PlaceCloseIndepThresh);
-			}
-			else if (argv[i][1] == 'd' && argv[i][2] == ':')
-			{
-				P.DoAdunitDemog = 1;
-				sscanf(&argv[i][3], "%s", RegDemogFile);
-			}
-			else if (argv[i][1] == 'c' && argv[i][2] == ':')
-			{
-				sscanf(&argv[i][3], "%i", &P.MaxNumThreads);
-			}
-			else if (argv[i][1] == 'M' && argv[i][2] == ':')
-			{
-				P.OutputDensFile = 1;
-				sscanf(&argv[i][3], "%s", OutDensFile);
-			}
-			else if (argv[i][1] == 'I' && argv[i][2] == ':')
-			{
-				sscanf(&argv[i][3], "%s", InterventionFile[P.DoInterventionFile]);
-				P.DoInterventionFile++;
-			}
-			else if (argv[i][1] == 'L' && argv[i][2] == 'S' && argv[i][3] == ':')
-			{
-				sscanf(&argv[i][4], "%s", SnapshotLoadFile);
-				P.DoLoadSnapshot = 1;
-			}
-			else if (argv[i][1] == 'P' && argv[i][2] == 'P' && argv[i][3] == ':')
-			{
-				sscanf(&argv[i][4], "%s", PreParamFile);
-				GotPP = 1;
-			}
-			else if (argv[i][1] == 'S' && argv[i][2] == 'S' && argv[i][3] == ':')
-			{
-				sscanf(&argv[i][4], "%s", buf);
-				fprintf(stderr, "### %s\n", buf);
-				sep = strchr(buf, ',');
-				if (!sep)
-					Perr = 1;
-				else
-				{
-					P.DoSaveSnapshot = 1;
-					*sep = ' ';
-					sscanf(buf, "%lf %s", &(P.SnapshotSaveTime), SnapshotSaveFile);
-				}
-			}
-		}
-		if (((GotS) && (GotL)) || (!GotP) || (!GotO)) Perr = 1;
-	}
+}
+/*
+int legacy_main(int argc, char* argv[])
+{
+	
+	// 			P.DoHeteroDensity = 1;
+	// 			P.DoPeriodicBoundaries = 0;
+	// 		}
+	// 		else if (argv[i][1] == 'A' && argv[i][2] == ':')
+	// 		{
+	// 			sscanf(&argv[i][3], "%s", AdunitFile);
+	// 		}
+	// 		else if (argv[i][1] == 'L' && argv[i][2] == ':')
+	// 		{
+	// 			GotL = 1;
+	// 			P.LoadSaveNetwork = 1;
+	// 			sscanf(&argv[i][3], "%s", NetworkFile);
+	// 		}
+	// 		else if (argv[i][1] == 'S' && argv[i][2] == ':')
+	// 		{
+	// 			P.LoadSaveNetwork = 2;
+	// 			GotS = 1;
+	// 			sscanf(&argv[i][3], "%s", NetworkFile);
+	// 		}
+	// 		else if (argv[i][1] == 'R' && argv[i][2] == ':')
+	// 		{
+	// 			sscanf(&argv[i][3], "%lf", &P.R0scale);
+	// 		}
+	// 		else if (argv[i][1] == 'K' && argv[i][2] == 'P' && argv[i][3] == ':') //added Kernel Power and Offset scaling so that it can easily be altered from the command line in order to vary the kernel quickly: ggilani - 15/10/14
+	// 		{
+	// 			sscanf(&argv[i][4], "%lf", &P.KernelPowerScale);
+	// 		}
+	// 		else if (argv[i][1] == 'K' && argv[i][2] == 'O' && argv[i][3] == ':')
+	// 		{
+	// 			sscanf(&argv[i][4], "%lf", &P.KernelOffsetScale);
+	// 		}
+	// 		else if (argv[i][1] == 'C' && argv[i][2] == 'L' && argv[i][3] == 'P' && argv[i][4] == '1' && argv[i][5] == ':') // generic command line specified param - matched to #1 in param file
+	// 		{
+	// 			sscanf(&argv[i][6], "%lf", &P.clP1);
+	// 		}
+	// 		else if (argv[i][1] == 'C' && argv[i][2] == 'L' && argv[i][3] == 'P' && argv[i][4] == '2' && argv[i][5] == ':') // generic command line specified param - matched to #2 in param file
+	// 		{
+	// 			sscanf(&argv[i][6], "%lf", &P.clP2);
+	// 		}
+	// 		else if(argv[i][1] == 'C' && argv[i][2] == 'L' && argv[i][3] == 'P' && argv[i][4] == '3' && argv[i][5] == ':') // generic command line specified param - matched to #3 in param file
+	// 			{
+	// 			sscanf(&argv[i][6], "%lf", &P.clP3);
+	// 			}
+	// 		else if(argv[i][1] == 'C' && argv[i][2] == 'L' && argv[i][3] == 'P' && argv[i][4] == '4' && argv[i][5] == ':') // generic command line specified param - matched to #4 in param file
+	// 			{
+	// 			sscanf(&argv[i][6], "%lf", &P.clP4);
+	// 			}
+	// 		else if(argv[i][1] == 'C' && argv[i][2] == 'L' && argv[i][3] == 'P' && argv[i][4] == '5' && argv[i][5] == ':') // generic command line specified param - matched to #5 in param file
+	// 			{
+	// 			sscanf(&argv[i][6], "%lf", &P.clP5);
+	// 			}
+	// 		else if(argv[i][1] == 'C' && argv[i][2] == 'L' && argv[i][3] == 'P' && argv[i][4] == '6' && argv[i][5] == ':') // generic command line specified param - matched to #6 in param file
+	// 			{
+	// 			sscanf(&argv[i][6], "%lf", &P.clP6);
+	// 			}
+	// 		else if (argv[i][1] == 'A' && argv[i][2] == 'P' && argv[i][3] == ':')
+	// 		{
+	// 			GotAP = 1;
+	// 			sscanf(&argv[i][3], "%s", AirTravelFile);
+	// 		}
+	// 		else if (argv[i][1] == 's' && argv[i][2] == ':')
+	// 		{
+	// 			GotScF = 1;
+	// 			sscanf(&argv[i][3], "%s", SchoolFile);
+	// 		}
+	// 		else if (argv[i][1] == 'T' && argv[i][2] == ':')
+	// 		{
+	// 			sscanf(&argv[i][3], "%i", &P.PreControlClusterIdCaseThreshold);
+	// 		}
+	// 		else if (argv[i][1] == 'C' && argv[i][2] == ':')
+	// 		{
+	// 			sscanf(&argv[i][3], "%i", &P.PlaceCloseIndepThresh);
+	// 		}
+	// 		else if (argv[i][1] == 'd' && argv[i][2] == ':')
+	// 		{
+	// 			P.DoAdunitDemog = 1;
+	// 			sscanf(&argv[i][3], "%s", RegDemogFile);
+	// 		}
+	// 		else if (argv[i][1] == 'c' && argv[i][2] == ':')
+	// 		{
+	// 			sscanf(&argv[i][3], "%i", &P.MaxNumThreads);
+	// 		}
+	// 		else if (argv[i][1] == 'M' && argv[i][2] == ':')
+	// 		{
+	// 			P.OutputDensFile = 1;
+	// 			sscanf(&argv[i][3], "%s", OutDensFile);
+	// 		}
+	// 		else if (argv[i][1] == 'I' && argv[i][2] == ':')
+	// 		{
+	// 			sscanf(&argv[i][3], "%s", InterventionFile[P.DoInterventionFile]);
+	// 			P.DoInterventionFile++;
+	// 		}
+	// 		else if (argv[i][1] == 'L' && argv[i][2] == 'S' && argv[i][3] == ':')
+	// 		{
+	// 			sscanf(&argv[i][4], "%s", SnapshotLoadFile);
+	// 			P.DoLoadSnapshot = 1;
+	// 		}
+	// 		else if (argv[i][1] == 'P' && argv[i][2] == 'P' && argv[i][3] == ':')
+	// 		{
+	// 			sscanf(&argv[i][4], "%s", PreParamFile);
+	// 			GotPP = 1;
+	// 		}
+	// 		else if (argv[i][1] == 'S' && argv[i][2] == 'S' && argv[i][3] == ':')
+	// 		{
+	// 			sscanf(&argv[i][4], "%s", buf);
+	// 			fprintf(stderr, "### %s\n", buf);
+	// 			sep = strchr(buf, ',');
+	// 			if (!sep)
+	// 				Perr = 1;
+	// 			else
+	// 			{
+	// 				P.DoSaveSnapshot = 1;
+	// 				*sep = ' ';
+	// 				sscanf(buf, "%lf %s", &(P.SnapshotSaveTime), SnapshotSaveFile);
+	// 			}
+	// 		}
+	// 	}
+	// 	if (((GotS) && (GotL)) || (!GotP) || (!GotO)) Perr = 1;
+	// }
 
 	///// END Read in command line arguments
 
@@ -366,7 +366,7 @@ int main(int argc, char* argv[])
 	{
 		fprintf(stderr, "Thread %i initialised\n", omp_get_thread_num());
 	}
-	/* fprintf(stderr,"int=%i\tfloat=%i\tdouble=%i\tint *=%i\n",(int) sizeof(int),(int) sizeof(float),(int) sizeof(double),(int) sizeof(int *));	*/
+	/* fprintf(stderr,"int=%i\tfloat=%i\tdouble=%i\tint *=%i\n",(int) sizeof(int),(int) sizeof(float),(int) sizeof(double),(int) sizeof(int *));	
 #else
 	P.NumThreads = 1;
 #endif
@@ -729,7 +729,7 @@ void ReadParams(char* ParamFile, char* PreParamFile)
 			/* WAIFW matrix needs to be scaled to have max value of 1.
 			1st index of matrix specifies host being infected, second the infector.
 			Overall age variation in infectiousness/contact rates/susceptibility should be factored
-			out of WAIFW_matrix and put in Age dep infectiousness/susceptibility for efficiency. */
+			out of WAIFW_matrix and put in Age dep infectiousness/susceptibility for efficiency. 
 			t = 0;
 			for (i = 0; i < NUM_AGE_GROUPS; i++)
 				for (j = 0; j < NUM_AGE_GROUPS; j++)
@@ -923,7 +923,7 @@ void ReadParams(char* ParamFile, char* PreParamFile)
 			for (i = 0; i < NUM_PLACE_TYPES; i++)
 				P.PlaceTypeKernelType[i] = P.MoveKernelType;
 		GetInputParameter(PreParamFile_dat, AdminFile_dat, "Place overlap matrix", "%lf", (void*)P.PlaceExclusivityMatrix, P.PlaceTypeNum * P.PlaceTypeNum, 1, 0); //changed from P.PlaceTypeNum,P.PlaceTypeNum,0);
-/* Note P.PlaceExclusivityMatrix not used at present - places assumed exclusive (each person belongs to 0 or 1 place) */
+/* Note P.PlaceExclusivityMatrix not used at present - places assumed exclusive (each person belongs to 0 or 1 place) 
 
 		GetInputParameter(ParamFile_dat, PreParamFile_dat, "Proportion of between group place links", "%lf", (void*)P.PlaceTypePropBetweenGroupLinks, P.PlaceTypeNum, 1, 0);
 		GetInputParameter(ParamFile_dat, PreParamFile_dat, "Relative transmission rates for place types", "%lf", (void*)P.PlaceTypeTrans, P.PlaceTypeNum, 1, 0);
@@ -2409,7 +2409,7 @@ void ReadAirTravel(char* AirTravelFile)
 	for (i = 0; i < P.Nairports; i++)
 	{
 		/*		fprintf(stderr,"(%f %i|",Airports[i].total_traffic,Airports[i].num_connected);
-		*/		t = 0; k = 0;
+				t = 0; k = 0;
 	for (j = Airports[i].num_connected - 1; j >= 0; j--)
 	{
 		if ((Airports[i].prop_traffic[j] > 0) && (Airports[Airports[i].conn_airports[j]].total_traffic == 0))
@@ -2428,7 +2428,7 @@ void ReadAirTravel(char* AirTravelFile)
 			k = 1;
 	}
 	/*		fprintf(stderr,"%f %i ",t,k);
-	*/		t = 1.0f - t;
+			t = 1.0f - t;
 	if (k)
 	{
 		Airports[i].total_traffic *= t;
@@ -2442,7 +2442,7 @@ void ReadAirTravel(char* AirTravelFile)
 			Airports[i].prop_traffic[j] /= t2;
 		/*			if((Airports[i].num_connected>0)&&(Airports[i].prop_traffic[Airports[i].num_connected-1]!=1))
 						fprintf(stderr,"<%f> ",Airports[i].prop_traffic[Airports[i].num_connected-1]);
-		*/
+		
 	}
 	else
 	{
@@ -2459,7 +2459,7 @@ void ReadAirTravel(char* AirTravelFile)
 		Airports[i].Inv_prop_traffic[128] = Airports[i].num_connected - 1;
 	}
 	/*		fprintf(stderr,"%f) ",Airports[i].total_traffic);
-	*/
+	
 	}
 	fprintf(stderr, "Airport data clipped OK.\n");
 	for (i = 0; i < MAX_DIST; i++) AirTravelDist[i] = 0;
@@ -2813,15 +2813,15 @@ void InitModel(int run) // passing run number so we can save run number in the i
 void SeedInfection(double t, int* nsi, int rf, int run) //adding run number to pass it to event log
 {
 	/* *nsi is an array of the number of seeding infections by location. During runtime, usually just a single int (given by a poisson distribution)*/
-	/*rf set to 0 when initializing model, otherwise set to 1 during runtime. */
+	/*rf set to 0 when initializing model, otherwise set to 1 during runtime. 
 
 	int i /*seed location index*/;
-	int j /*microcell number*/;
-	int k, l /*k,l are grid coords at first, then l changed to be person within Microcell j, then k changed to be index of new infection*/;
-	int m = 0/*guard against too many infections and infinite loop*/;
-	int f /*range = {0, 1000}*/;
-	int n /*number of seed locations?*/;
-
+	// int j /*microcell number*/;
+	// int k, l /*k,l are grid coords at first, then l changed to be person within Microcell j, then k changed to be index of new infection*/; ---- DONT USE MULTI LINE COMMENT FOR SINGLE LINE PLEASE ....
+	// int m = 0/*guard against too many infections and infinite loop*/;
+	// int f /*range = {0, 1000}*/;
+	//int n /*number of seed locations?;
+/*
 	n = ((rf == 0) ? P.NumSeedLocations : 1);
 	for (i = 0; i < n; i++)
 	{
@@ -2934,7 +2934,7 @@ void SeedInfection(double t, int* nsi, int rf, int run) //adding run number to p
 
 int RunModel(int run) //added run number as parameter
 {
-	int j, k, l, fs, fs2, nu, ni, nsi[MAX_NUM_SEED_LOCATIONS] /*Denotes either Num imported Infections given rate ir, or number false positive "infections"*/;
+	int j, k, l, fs, fs2, nu, ni, nsi[MAX_NUM_SEED_LOCATIONS] /*Denotes either Num imported Infections given rate ir, or number false positive "infections";
 	double ir; // infection import rate?;
 	double t, cI, lcI, t2;
 	unsigned short int ts;
@@ -2970,7 +2970,7 @@ int RunModel(int run) //added run number as parameter
 			fs2++;
 	}
 	fprintf(stderr, "\n*** susceptibles=%i\nincorrect listpos=%i\nhosts not found in cell list=%i\nincorrect cell refs=%i\nincorrect positioning in cell susc list=%i\nwrong cell totals=%i\n", j, k, ni, fs2, i2, k2);
-*/
+
 	InterruptRun = 0;
 	lcI = 1;
 	if (P.DoLoadSnapshot)
@@ -3120,7 +3120,7 @@ int RunModel(int run) //added run number as parameter
 		}
 		fprintf(stderr, "\n*** susceptibles=%i\nincorrect listpos=%i\nhosts not found in cell list=%i\nincorrect cell refs=%i\nincorrect positioning in cell susc list=%i\nwrong cell totals=%i\n", j, k, ni, fs2, i2, k2);
 	}
-*/
+
 	if(!InterruptRun) RecordInfTypes();
 	return (InterruptRun);
 }
@@ -3216,7 +3216,7 @@ void SaveOriginDestMatrix(void)
 	 * returns: none
 	 *
 	 * author: ggilani, 13/02/15
-	 */
+	 
 	int i, j;
 	FILE* dat;
 	char outname[1024];
@@ -4006,7 +4006,7 @@ void SaveRandomSeeds(void)
 	 * Returns: none
 	 *
 	 * Author: ggilani, 09/03/17
-	 */
+	 
 	FILE* dat;
 	char outname[1024];
 
@@ -4025,7 +4025,7 @@ void SaveEvents(void)
 	 * Returns: none
 	 *
 	 * Author: ggilani, 15/10/2014
-	 */
+	 
 	int i;
 	FILE* dat;
 	char outname[1024];
@@ -5037,7 +5037,7 @@ void RecordInfTypes(void)
 					if ((l < MAX_GEN_REC) && (Hosts[i].listpos < MAX_SEC_REC)) indivR0[Hosts[i].listpos][l]++;
 				}
 			}
-	/* 	if(!TimeSeries[P.NumSamples-1].extinct) */
+	/* 	if(!TimeSeries[P.NumSamples-1].extinct) 
 	{
 		for (i = 0; i < INFECT_TYPE_MASK; i++) inftype_av[i] += inftype[i];
 		for (i = 0; i < MAX_COUNTRIES; i++)
@@ -5087,7 +5087,7 @@ void RecordInfTypes(void)
 			res = (double*)&TimeSeries[n + lc];
 			res_av = (double*)&TSMean[n];
 			res_var = (double*)&TSVar[n];
-			for (i = 1 /* skip over `t` */; i < nf; i++)
+			for (i = 1 /* skip over `t` ; i < nf; i++)
 			{
 				res_av[i] += res[i];
 				res_var[i] += res[i] * res[i];
@@ -5115,7 +5115,7 @@ void CalcOriginDestMatrix_adunit()
 	 * returns: none
 	 *
 	 * author: ggilani, date: 28/01/15
-	 */
+	 
 	int tn, i, j, k, l, m, p;
 	double total_flow, flow;
 	ptrdiff_t cl_from, cl_to, cl_from_mcl, cl_to_mcl, mcl_from, mcl_to;
@@ -5281,7 +5281,7 @@ int GetInputParameter2(FILE* dat, FILE* dat2, const char* SItemName, const char*
 /*
     Reads a string (as per fscanf %s).
     Returns true if it succeeds, false on EOF, and does not return on error.
-*/
+
 bool readString(const char* SItemName, FILE* dat, char *buf) {
     int r = fscanf(dat, "%s", buf);
     if(r == 1) {
@@ -5459,6 +5459,6 @@ int GetInputParameter3(FILE* dat, const char* SItemName, const char* ItemType, v
 	}
 	//	fprintf(stderr,"%s\n",SItemName);
 	return FindFlag;
-}
+}*/
 
 

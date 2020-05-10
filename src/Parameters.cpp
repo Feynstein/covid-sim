@@ -58,3 +58,23 @@ void Parameters::SetValue(const std::string &p_key, const std::any &p_value)
 
   m_dataMap[p_key] = p_value;
 }
+
+std::vector<std::string> Parameters::GetKeys()
+{
+  std::vector<std::string> outputVector;
+  for(auto pair : m_dataMap)
+  {
+    outputVector.push_back(pair.first); //There should be a better way since we don't like push-backs they make stuff slower... to see
+  }
+
+  return outputVector;
+}
+
+void Parameters::ModifyValue(const std::string &p_key, const std::any &p_value)
+{
+  assert(m_dataMap.count(p_key) == 1);
+
+  m_dataMap[p_key] = p_value;
+
+  assert(m_dataMap.count(p_key) == 1); // Just because I don't use unordered_map that often lol sorry
+}
