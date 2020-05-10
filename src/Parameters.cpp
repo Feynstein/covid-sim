@@ -34,7 +34,7 @@ Parameters::Parameters()
     m_dataMap["MaxNumThreads"] = (int)0; // Doesnt seem right ... 
     m_dataMap["DoInterventionFile"] = (int)0;
     m_dataMap["PreControlClusterIdCaseThreshold"] = (int)0;
-    m_dataMap["R0scale"] = (double) 1.0;
+    m_dataMap["R0Scale"] = (double) 1.0;
     m_dataMap["KernelOffsetScale"] = (double) 1.0; //added this so that kernel parameters are only changed if input from the command line: ggilani - 15/10/2014
     m_dataMap["KernelPowerScale"] = (double) 1.0;
     m_dataMap["DoSaveSnapshot"] = (int) 0;

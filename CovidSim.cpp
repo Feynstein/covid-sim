@@ -6,6 +6,8 @@
 #include <stddef.h>
 #include <string>
 #include <iostream>
+#include <thread> // only for std::thread::hardware_concurrency()
+#include <any>
 
 #include <boost/program_options.hpp>
 
@@ -19,15 +21,16 @@
 // #include "Bitmap.h"
 // #include "Model.h"
 #include "Parameters.h"
+#include "ParametersReader.h"
 // #include "SetupModel.h"
 // #include "SharedFuncs.h"
 // #include "ModelMacros.h"
 // #include "InfStat.h"
 // #include "CalcInfSusc.h"
 // #include "Update.h"
-#ifdef _OPENMP
+// #ifdef _OPENMP
 #include <omp.h>
-#endif // _OPENMP
+// #endif // _OPENMP
 
 
 //************************************************************ To move somewhere else
@@ -127,21 +130,22 @@ int main(int argc, char* argv[])
 	po::options_description options{"Executable options"};
 
 	options.add_options()("nThread", po::value<int>()->default_value(1), "The number of parallel threads to use");
-	options.add_options()("adminF", po::value<std::string>()->default_value(""), "--adminFile Description--");
-	options.add_options()("preParamF", po::value<std::string>()->default_value(""), "--PreParamFile Description--");
-    options.add_options()("paramF", po::value<std::string>()->default_value(""), "--ParamFile Description--");
-    options.add_options()("popDensityF", po::value<std::string>()->default_value(""), "--DensityFile Description--");
-    options.add_options()("networkLoad", po::value<std::string>()->default_value(""), "--NetworkFile Load Description--");
-	options.add_options()("networkSave", po::value<std::string>()->default_value(""), "--NetworkFile Save Description--");
-    options.add_options()("airTravelF", po::value<std::string>()->default_value(""), "--AirTravelFile Description--");
-	options.add_options()("schoolF", po::value<std::string>()->default_value(""), "--SchoolFile Description--");
-	options.add_options()("regDemogF", po::value<std::string>()->default_value(""), "--RegDemogFile Description--");
+	options.add_options()("adminF", po::value<std::string>(), "--adminFile Description--");
+	options.add_options()("preParamF", po::value<std::string>(), "--PreParamFile Description--");
+    options.add_options()("paramF", po::value<std::string>(), "--ParamFile Description-- Mandatory");
+    options.add_options()("popDensityF", po::value<std::string>(), "--DensityFile Description--");
+    options.add_options()("networkLoad", po::value<std::string>(), "--NetworkFile Load Description-- Cannot be used in combination with Network Save");
+	options.add_options()("networkSave", po::value<std::string>(), "--NetworkFile Save Description-- Cannot be used in combination with Network Load");
+    options.add_options()("airTravelF", po::value<std::string>(), "--AirTravelFile Description--");
+	options.add_options()("schoolF", po::value<std::string>(), "--SchoolFile Description--");
+	options.add_options()("regDemogF", po::value<std::string>(), "--RegDemogFile Description--");
 	options.add_options()("interventionFiles", po::value<std::vector<std::string>>()->multitoken() , "--InterventionFiles Description--");
-	options.add_options()("outputPrefix", po::value<std::string>()->default_value(""), "--Output Prefix Description--");
+	options.add_options()("outputPrefix", po::value<std::string>(), "--Output Prefix Description-- Mandatory");
 	options.add_options()("setupSeed1", po::value<long int>()->default_value(42), "Setup random seed 1");
 	options.add_options()("setupSeed2", po::value<long int>()->default_value(42), "Setup random seed 2");
 	options.add_options()("runSeed1", po::value<long int>()->default_value(42), "Run random seed 1");
 	options.add_options()("runSeed2", po::value<long int>()->default_value(42), "Run random seed 2");
+	options.add_options()("r0Scale", po::value<float>()->default_value(1.5), "R0 Scaling");
 
 
 	
@@ -150,95 +154,100 @@ int main(int argc, char* argv[])
 	po::store(po::parse_command_line(argc, argv, options), varMap);
 	po::notify(varMap);    
 
+
 	if(varMap.count("help")) 
 	{
     	std::cout << options << std::endl;
     	return 1;
 	}
-
-	std::vector<std::string> allInputsVector = {"paramF", "popDensityF", "networkLoad", "networkSave", "airTravelF", "schoolF", "regDemogF", "interventionFiles", "preParamF"};
-
-	//Checking all input variables to see if some are missing, might be changed sometime if needed
-	for(auto inputVal : allInputsVector)
+	else if(varMap["outputPrefix"].empty())
 	{
-		if(varMap[inputVal].empty())
-		{
-			std::cout <<  inputVal + " parameter not found, aborting?" << std::endl;
-			std::cout << "Use -h for more info on input parameters" << std::endl;
-			return 1;
-		}
-		
+		std::cout << "Missing output files prefix, aborting" << std::endl;
+		return 1;
+	}
+	else if(varMap["paramF"].empty())
+	{
+		std::cout << "Missing the input parameter file, aborting" << std::endl;
+		return 1;
+	}
+	else if(!varMap["networkLoad"].empty() && !varMap["networkSave"].empty())
+	{
+		std::cout << "Cannot load and save a network at the same time, aborting" << std::endl;
+		return 1;
+	}
+	else if(varMap["adminF"].empty())
+	{
+		std::cout << "Missing the Admin Param File, aborting" << std::endl;
+		return 1;
+	}
+	else if(varMap["preParamF"].empty())
+	{
+		std::cout << "Missing the Pre-Param File, aborting" << std::endl;
+		return 1;
 	}
 
-	std::vector<std::string> interventionFiles = varMap["interventionFiles"].as<std::vector<std::string>>();
+	std::vector<std::string> interventionFiles;
+	if(varMap.count("interventionFiles") > 0)
+	{
+		interventionFiles = varMap["interventionFiles"].as<std::vector<std::string>>();
+	}
 
-	options.add_options()("nThread", po::value<int>()->default_value(1), "The number of parallel threads to use");
-	options.add_options()("adminF", po::value<std::string>()->default_value(""), "--adminFile Description--");
-	options.add_options()("preParamF", po::value<std::string>()->default_value(""), "--PreParamFile Description--");
-    options.add_options()("paramF", po::value<std::string>()->default_value(""), "--ParamFile Description--");
-    options.add_options()("popDensityF", po::value<std::string>()->default_value(""), "--Population Density File Description--");
-    options.add_options()("networkLoad", po::value<std::string>()->default_value(""), "--NetworkFile Load Description--");
-	options.add_options()("networkSave", po::value<std::string>()->default_value(""), "--NetworkFile Save Description--");
-    options.add_options()("airTravelF", po::value<std::string>()->default_value(""), "--AirTravelFile Description--");
-	options.add_options()("schoolF", po::value<std::string>()->default_value(""), "--SchoolFile Description--");
-	options.add_options()("regDemogF", po::value<std::string>()->default_value(""), "--RegDemogFile Description--");
-	options.add_options()("interventionFiles", po::value<std::vector<std::string>>()->multitoken() , "--InterventionFiles Description--");
-	options.add_options()("outputPrefix", po::value<std::string>()->default_value(""), "--Output Prefix Description--");
 
-	// Will have to load them like that for now... but there might be a way to like setup a vector of types or something and load them in the verif loop above
+
+
+	//Taking up space here to clearly show every parameter entry in the trolley 
 	ParametersSP runParametersTrolley(new Parameters());
-	runParametersTrolley->SetValue("NThread", varMap["nThread"].as<int>());
+
+	//Mandatory params ?
 	runParametersTrolley->SetValue("AdminParamFile", varMap["adminF"].as<std::string>());
-	runParametersTrolley->SetValue("PreParamFile", varMap["preParamF"].as<std::string>());
 	runParametersTrolley->SetValue("ParamFile", varMap["paramF"].as<std::string>());
-	runParametersTrolley->SetValue("PopDensityFile", varMap["popDensityF"].as<std::string>());
-	runParametersTrolley->SetValue("NetworkFileLoad", varMap["networkLoad"].as<std::string>());
-	runParametersTrolley->SetValue("NetworkFileSave", varMap["networkSave"].as<std::string>());
-	runParametersTrolley->SetValue("NetworkSave", varMap["networkSave"].as<std::string>());
-	runParametersTrolley->SetValue("SetupSeed1", varMap["setupSeed1"].as<long int>() );
+	runParametersTrolley->SetValue("PreParamFile", varMap["preParamF"].as<std::string>());
+	runParametersTrolley->SetValue("OutputPrefix", varMap["outputPrefix"].as<std::string>());
+
+	//Optionnal params?
+	// Consider doing something like this eventually
+	// std::vector<std::string> optionsKeys = {"nThread", "popDensityF", "networkLoad", "networkSave", "setupSeed1", "setupSeed2", "runSeed1", "runSeed2"};
+	// std::vector<std::string> trolleyKeys = {"NThread", "PopDensityFile", "NetworkFileLoad", "NetworkFileSave", "SetupSeed1", "SetupSeed2", "RunSeed1", "RunSeed2"};
+	// std::vector<std::any> defaultValues = {1, "", "", } 
+
+	runParametersTrolley->SetValue("NThread", varMap["nThread"].as<int>());
+	runParametersTrolley->SetValue("SetupSeed1", varMap["setupSeed1"].as<long int>());
 	runParametersTrolley->SetValue("SetupSeed2", varMap["setupSeed2"].as<long int>());
 	runParametersTrolley->SetValue("RunSeed1", varMap["runSeed1"].as<long int>());
 	runParametersTrolley->SetValue("RunSeed2", varMap["runSeed2"].as<long int>());
-
-	//Will start with the lightest run for now and add the other parameters eventually
 	
-	//No idea why its there gonna leave it for now
-	// Perr = 0;
-	// fprintf(stderr, "sizeof(int)=%i sizeof(long)=%i sizeof(float)=%i sizeof(double)=%i sizeof(unsigned short int)=%i sizeof(int *)=%i\n", (int)sizeof(int), (int)sizeof(long), (int)sizeof(float), (int)sizeof(double), (int)sizeof(unsigned short int), (int)sizeof(int*));
-	// cl = clock();
 
-	int test1 = std::any_cast<int>(runParametersTrolley->GetValue("DoHeteroDensity"));
-	std::cout << "Bloup Test:" << test1 << std::endl;
-	runParametersTrolley->ModifyValue("DoHeteroDensity", 1);
-
-	test1 = std::any_cast<int>(runParametersTrolley->GetValue("DoHeteroDensity"));
-	std::cout << "Post bloup test:" << test1 << std::endl;
-
-
-}
-/*
-int legacy_main(int argc, char* argv[])
-{
 	
-	// 			P.DoHeteroDensity = 1;
-	// 			P.DoPeriodicBoundaries = 0;
-	// 		}
-	// 		else if (argv[i][1] == 'A' && argv[i][2] == ':')
-	// 		{
-	// 			sscanf(&argv[i][3], "%s", AdunitFile);
-	// 		}
-	// 		else if (argv[i][1] == 'L' && argv[i][2] == ':')
-	// 		{
-	// 			GotL = 1;
-	// 			P.LoadSaveNetwork = 1;
-	// 			sscanf(&argv[i][3], "%s", NetworkFile);
-	// 		}
-	// 		else if (argv[i][1] == 'S' && argv[i][2] == ':')
-	// 		{
-	// 			P.LoadSaveNetwork = 2;
-	// 			GotS = 1;
-	// 			sscanf(&argv[i][3], "%s", NetworkFile);
-	// 		}
+	if(!varMap["popDensityF"].empty())
+	{
+		runParametersTrolley->SetValue("PopDensityFile", varMap["popDensityF"].as<std::string>());
+		runParametersTrolley->ModifyValue("DoHeteroDensity", 1);
+		runParametersTrolley->ModifyValue("DoPeriodicBoundaries", 0);
+	}
+
+	if(!varMap["networkLoad"].empty())
+	{
+		runParametersTrolley->SetValue("NetworkFileLoad", varMap["networkLoad"].as<std::string>());
+		runParametersTrolley->ModifyValue("LoadSaveNetwork", 1);
+	}
+	else if(!varMap["networkSave"].empty())
+	{
+		runParametersTrolley->SetValue("NetworkFileSave", varMap["networkSave"].as<std::string>());
+		runParametersTrolley->ModifyValue("LoadSaveNetwork", 2);
+	}
+	
+	if(!varMap["r0Scale"].empty())
+	{
+		runParametersTrolley->ModifyValue("R0Scale", varMap["r0Scale"].as<float>());
+	}
+	else
+	{
+		runParametersTrolley->ModifyValue("R0Scale", 1.5f);
+	}
+	
+
+	
+	
 	// 		else if (argv[i][1] == 'R' && argv[i][2] == ':')
 	// 		{
 	// 			sscanf(&argv[i][3], "%lf", &P.R0scale);
@@ -342,25 +351,30 @@ int legacy_main(int argc, char* argv[])
 
 	///// END Read in command line arguments
 
-	sprintf(OutFile, "%s", OutFileBase);
+	// sprintf(OutFile, "%s", OutFileBase);
 
-	fprintf(stderr, "Param=%s\nOut=%s\nDens=%s\n", ParamFile, OutFile, DensityFile);
-	if (Perr) ERR_CRITICAL_FMT("Syntax:\n%s /P:ParamFile /O:OutputFile [/AP:AirTravelFile] [/s:SchoolFile] [/D:DensityFile] [/L:NetworkFileToLoad | /S:NetworkFileToSave] [/R:R0scaling] SetupSeed1 SetupSeed2 RunSeed1 RunSeed2\n", argv[0]);
+	// fprintf(stderr, "Param=%s\nOut=%s\nDens=%s\n", ParamFile, OutFile, DensityFile);
+	std::cout << "Param=" << std::any_cast<std::string>(runParametersTrolley->GetValue("ParamFile")) << std::endl;
+	std::cout << "Out=" << std::any_cast<std::string>(runParametersTrolley->GetValue("OutputPrefix")) << std::endl;
+	std::cout << "Dens=" << std::any_cast<std::string>(runParametersTrolley->GetValue("PopDensityFile")) << std::endl;
+	// if (Perr) ERR_CRITICAL_FMT("Syntax:\n%s /P:ParamFile /O:OutputFile [/AP:AirTravelFile] [/s:SchoolFile] [/D:DensityFile] [/L:NetworkFileToLoad | /S:NetworkFileToSave] [/R:R0scaling] SetupSeed1 SetupSeed2 RunSeed1 RunSeed2\n", argv[0]);
 
 	//// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// ****
 	//// **** SET UP OMP / THREADS
 	//// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// ****
 
-#ifdef _OPENMP
-	P.NumThreads = omp_get_max_threads();
-	if ((P.MaxNumThreads > 0) && (P.MaxNumThreads < P.NumThreads)) P.NumThreads = P.MaxNumThreads;
-	if (P.NumThreads > MAX_NUM_THREADS)
-	{
-		fprintf(stderr, "Assigned number of threads (%d) > MAX_NUM_THREADS (%d)\n", P.NumThreads, MAX_NUM_THREADS);
-		P.NumThreads = MAX_NUM_THREADS;
-	}
-	fprintf(stderr, "Using %d threads\n", P.NumThreads);
-	omp_set_num_threads(P.NumThreads);
+// #ifdef _OPENMP
+	// P.NumThreads = omp_get_max_threads();
+	
+	// if ((P.MaxNumThreads > 0) && (P.MaxNumThreads < P.NumThreads)) P.NumThreads = P.MaxNumThreads;
+	// if (P.NumThreads > MAX_NUM_THREADS)
+	// {
+	// 	fprintf(stderr, "Assigned number of threads (%d) > MAX_NUM_THREADS (%d)\n", P.NumThreads, MAX_NUM_THREADS);
+	// 	P.NumThreads = MAX_NUM_THREADS;
+	// }
+	
+	std::cout << "Using " << std::any_cast<int>(runParametersTrolley->GetValue("NThread")) << " threads" << std::endl;
+	omp_set_num_threads(std::any_cast<int>(runParametersTrolley->GetValue("NThread")));
 
 #pragma omp parallel default(shared)
 	{
@@ -378,16 +392,17 @@ int legacy_main(int argc, char* argv[])
 	//// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// ****
 	//// **** READ IN PARAMETERS, DATA ETC.
 	//// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// ****
+*/
 
 
-	ReadParams(ParamFile, PreParamFile);
-	if (GotScF) P.DoSchoolFile = 1;
-	if (P.DoAirports)
-	{
-		if (!GotAP) ERR_CRITICAL_FMT("Syntax:\n%s /P:ParamFile /O:OutputFile /AP:AirTravelFile [/s:SchoolFile] [/D:DensityFile] [/L:NetworkFileToLoad | /S:NetworkFileToSave] [/R:R0scaling] SetupSeed1 SetupSeed2 RunSeed1 RunSeed2\n", argv[0]);
-		ReadAirTravel(AirTravelFile);
-	}
-
+	ParametersReader::ReadInputParameters(runParametersTrolley);}
+	// if (GotScF) P.DoSchoolFile = 1;
+	// if (P.DoAirports)
+	// {
+	// 	if (!GotAP) ERR_CRITICAL_FMT("Syntax:\n%s /P:ParamFile /O:OutputFile /AP:AirTravelFile [/s:SchoolFile] [/D:DensityFile] [/L:NetworkFileToLoad | /S:NetworkFileToSave] [/R:R0scaling] SetupSeed1 SetupSeed2 RunSeed1 RunSeed2\n", argv[0]);
+	// 	ReadAirTravel(AirTravelFile);
+	// }
+/*
 	//// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// ****
 	//// **** INITIALIZE
 	//// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// **** //// ****

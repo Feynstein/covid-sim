@@ -2,7 +2,7 @@
 //
 //  Utilities.h
 //
-//  Created by Feynstein on 05/08/2020
+//  Created by ybelanger on 05/08/2020
 //
 //
 
@@ -20,5 +20,5 @@
 class Utilities
 {
     public:
-        static void ReadInputParameters(const std::string &p_paramFileName, const std::string &p_preParamFilename);
+        // static void ReadInputParameters(const std::string &p_paramFileName, const std::string &p_preParamFilename); //moved to ParametersReader
 };

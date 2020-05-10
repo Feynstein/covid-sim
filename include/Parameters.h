@@ -27,7 +27,8 @@ class Parameters
 		std::vector<std::string> GetKeys();
 		const std::any GetValue(const std::string &p_key);
 		void SetValue(const std::string &p_key, const std::any &p_value);
-		void ModifyValue(const std::string &p_key, const std::any &p_value); // Just to make sure everyone understands that an unordered map has 1 instance of every key
+		void ModifyValue(const std::string &p_key, const std::any &p_value);
+		bool HasKey(const std::string &p_key) { return m_dataMap.count(p_key) == 1 ? true : false;}; // Just to make sure everyone understands that an unordered map has 1 instance of every key
 
 	private:
 
