@@ -5,6 +5,10 @@
 //
 //
 
+#include <exception>
+#include <iostream>
+#include <cassert>
+
 #include "Parameters.h"
 
 
@@ -31,11 +35,26 @@ Parameters::Parameters()
     m_dataMap["DoInterventionFile"] = (int)0;
     m_dataMap["PreControlClusterIdCaseThreshold"] = (int)0;
     m_dataMap["R0scale"] = (double) 1.0;
+    m_dataMap["KernelOffsetScale"] = (double) 1.0; //added this so that kernel parameters are only changed if input from the command line: ggilani - 15/10/2014
+    m_dataMap["KernelPowerScale"] = (double) 1.0;
+    m_dataMap["DoSaveSnapshot"] = (int) 0;
+    m_dataMap["DoLoadSnapshot"] = (int) 0;
 
+    //This is where the keys should be loaded from txt or xml in order to verify when setting and getting
+}
 
-    P.PlaceCloseIndepThresh = P.LoadSaveNetwork = P.DoHeteroDensity = P.DoPeriodicBoundaries = P.DoSchoolFile = P.DoAdunitDemog = P.OutputDensFile = P.MaxNumThreads = P.DoInterventionFile = 0;
-		P.PreControlClusterIdCaseThreshold = 0;
-		P.R0scale = 1.0;
-		P.KernelOffsetScale = P.KernelPowerScale = 1.0; //added this so that kernel parameters are only changed if input from the command line: ggilani - 15/10/2014
-		P.DoSaveSnapshot = P.DoLoadSnapshot  = 0;
+const std::any Parameters::GetValue(const std::string &p_key)
+{
+  //Will have to implement protection, doing it like that now
+  assert(m_dataMap.count(p_key) == 1);
+  //This is where the keys will be verified; do something like std::count(m_availableKeys.begin(), m_availableKeys.end(), p_key) == 1;
+  return m_dataMap[p_key]; 
+}
+
+void Parameters::SetValue(const std::string &p_key, const std::any &p_value)
+{
+  //Verify that its in the keys vector
+  assert(m_dataMap.count(p_key) == 0);
+
+  m_dataMap[p_key] = p_value;
 }

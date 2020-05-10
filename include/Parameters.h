@@ -24,12 +24,13 @@ class Parameters
 	public:
 		Parameters();
 
-		std::any GetValue(const std::string &p_key);
+		const std::any GetValue(const std::string &p_key);
 
-		void SetValue(const std::string &p_key, std::any &p_value);
+		void SetValue(const std::string &p_key, const std::any &p_value);
 
 	private:
 
+	std::vector<std::string> m_availableKeys;
 	std::unordered_map<std::string, std::any> m_dataMap;
 
 };

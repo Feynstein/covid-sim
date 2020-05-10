@@ -6,7 +6,6 @@
 #include <stddef.h>
 #include <string>
 #include <iostream>
-#include <cassert>
 
 #include <boost/program_options.hpp>
 
@@ -129,16 +128,22 @@ int main(int argc, char* argv[])
 
 	options.add_options()("nThread", po::value<int>()->default_value(1), "The number of parallel threads to use");
 	options.add_options()("adminF", po::value<std::string>()->default_value(""), "--adminFile Description--");
+	options.add_options()("preParamF", po::value<std::string>()->default_value(""), "--PreParamFile Description--");
     options.add_options()("paramF", po::value<std::string>()->default_value(""), "--ParamFile Description--");
     options.add_options()("densityF", po::value<std::string>()->default_value(""), "--DensityFile Description--");
-    options.add_options()("networkF", po::value<std::string>()->default_value(""), "--NetworkFile Description--");
+    options.add_options()("networkLoad", po::value<std::string>()->default_value(""), "--NetworkFile Load Description--");
+	options.add_options()("networkSave", po::value<std::string>()->default_value(""), "--NetworkFile Save Description--");
     options.add_options()("airTravelF", po::value<std::string>()->default_value(""), "--AirTravelFile Description--");
 	options.add_options()("schoolF", po::value<std::string>()->default_value(""), "--SchoolFile Description--");
-	options.add_options()("regdemogF", po::value<std::string>()->default_value(""), "--RegDemogFile Description--");
+	options.add_options()("regDemogF", po::value<std::string>()->default_value(""), "--RegDemogFile Description--");
 	options.add_options()("interventionFiles", po::value<std::vector<std::string>>()->multitoken() , "--InterventionFiles Description--");
-	options.add_options()("preparamF", boost::program_options::value<std::string>()->default_value(""), "--PreParamFile Description--");
+	options.add_options()("setupSeed1", po::value<long int>()->default_value(42), "Setup random seed 1");
+	options.add_options()("setupSeed2", po::value<long int>()->default_value(42), "Setup random seed 2");
+	options.add_options()("runSeed1", po::value<long int>()->default_value(42), "Run random seed 1");
+	options.add_options()("runSeed2", po::value<long int>()->default_value(42), "Run random seed 2");
 
 
+	
 
 	po::variables_map varMap;
 	po::store(po::parse_command_line(argc, argv, options), varMap);
@@ -150,7 +155,7 @@ int main(int argc, char* argv[])
     	return 1;
 	}
 
-	std::vector<std::string> allInputsVector = {"paramF", "densityF", "networkF", "airTravelF", "schoolF", "regdemogF", "interventionF", "preparamF"};
+	std::vector<std::string> allInputsVector = {"paramF", "densityF", "networkLoad", "networkSave", "airTravelF", "schoolF", "regDemogF", "interventionFiles", "preParamF"};
 
 	//Checking all input variables to see if some are missing, might be changed sometime if needed
 	for(auto inputVal : allInputsVector)
@@ -166,6 +171,13 @@ int main(int argc, char* argv[])
 	std::vector<std::string> interventionFiles = varMap["interventionFiles"].as<std::vector<std::string>>();
 
 
+	ParametersSP runParametersTrolley(new Parameters());
+	runParametersTrolley->SetValue("SetupSeed1", varMap["setupSeed1"].as<long int>() );
+	runParametersTrolley->SetValue("SetupSeed2", varMap["setupSeed2"].as<long int>());
+	runParametersTrolley->SetValue("RunSeed1", varMap["runSeed1"].as<long int>());
+	runParametersTrolley->SetValue("RunSeed2", varMap["runSeed2"].as<long int>());
+
+	int bloup = std::any_cast<long int>(runParametersTrolley->GetValue("RunSeed1"));
 
 // }
 
@@ -187,20 +199,10 @@ int main(int argc, char* argv[])
 	if (argc < 7)	Perr = 1;
 	else
 	{
-		///// Get seeds.
-		i = argc - 4;
-		sscanf(argv[i], "%li", &P.setupSeed1);
-		sscanf(argv[i + 1], "%li", &P.setupSeed2);
-		sscanf(argv[i + 2], "%li", &P.runSeed1);
-		sscanf(argv[i + 3], "%li", &P.runSeed2);
+		
+		
 
-		///// Set parameter defaults - read them in after
-		P.PlaceCloseIndepThresh = P.LoadSaveNetwork = P.DoHeteroDensity = P.DoPeriodicBoundaries = P.DoSchoolFile = P.DoAdunitDemog = P.OutputDensFile = P.MaxNumThreads = P.DoInterventionFile = 0;
-		P.PreControlClusterIdCaseThreshold = 0;
-		P.R0scale = 1.0;
-		P.KernelOffsetScale = P.KernelPowerScale = 1.0; //added this so that kernel parameters are only changed if input from the command line: ggilani - 15/10/2014
-		P.DoSaveSnapshot = P.DoLoadSnapshot  = 0;
-
+		
 		//// scroll through command line arguments, anticipating what they can be using various if statements. ---> lol
 		for (i = 1; i < argc - 4; i++)
 		{
