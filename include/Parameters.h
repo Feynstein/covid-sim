@@ -1,7 +1,10 @@
 #pragma once
-
-// #ifndef COVIDSIM_PARAM_H_INCLUDED_ //nope because of pragma once
-// #define COVIDSIM_PARAM_H_INCLUDED_
+//
+//  Parameters.h
+//
+//  Created by Feynstein on 05/08/2020
+//
+//
 
 #include <unordered_map>
 #include <any> // Needs C++ 17  but very efficient
@@ -11,10 +14,19 @@
 
 
 // Will use an unordered map of std::any so that there is no need to have all these definitions in the code, it will be in some kind of help txt document
+// This thing needs to be used in a smart pointer, no thread safety has been implemented inside of it
+/**
+ * @brief Stores the parameters for the simulation.
+ *
+ */
 class Parameters
 {
 	public:
 		Parameters();
+
+		std::any GetValue(const std::string &p_key);
+
+		void SetValue(const std::string &p_key, std::any &p_value);
 
 	private:
 
@@ -22,6 +34,7 @@ class Parameters
 
 };
 
+typedef sP<Parameters> ParametersSP;
 
 /**
  * @brief Stores the parameters for the simulation.
@@ -59,7 +72,7 @@ typedef struct PARAM {
 	int NCP; /**< Number of populated cells  */
 	int NMCP, ncw, nch, nmcw, nmch, DoUTM_coords, nsp, DoSeasonality, DoCorrectAgeDist, DoPartialImmunity;
 	int DoAdUnits, NumAdunits, DoAdunitBoundaries, AdunitLevel1Divisor, AdunitLevel1Mask, AdunitBitmapDivisor, CountryDivisor;
-	int DoAdunitOutput, DoAdunitBoundaryOutput, DoAdunitDemog, DoCorrectAdunitPop, DoSpecifyPop, AdunitLevel1Lookup[ADUNIT_LOOKUP_SIZE];
+	int DoAdunitOutput, DoAdunitBoundaryOutput, DoAdunitDemog, DoCorrectAdunitPop, DoSpecifyPop, AdunitLevel1Lookup[ADUNIT_LOOKUP_SIZE]; 
 	int DoOutputPlaceDistForOneAdunit, OutputPlaceDistAdunit, OutputDensFile;
 	int DoOneGen, OutputEveryRealisation, BitmapMovieFrame, MaxCorrSample, DoLatent, InfQueuePeakLength, NumThreads, MaxNumThreads;
 	int bwidth, bheight; // Size in pixels of the map area in the bitmap output
@@ -303,6 +316,6 @@ typedef struct PARAM {
 
 extern param P;
 
-typedef sP<Parameters> ParametersSP;
+
 
 // #endif // COVIDSIM_PARAM_H_INCLUDED_

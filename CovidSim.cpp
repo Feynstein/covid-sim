@@ -127,6 +127,8 @@ int main(int argc, char* argv[])
 {
 	po::options_description options{"Executatable options"};
 
+	options.add_options()("nThread", po::value<int>()->default_value(1), "The number of parallel threads to use");
+	options.add_options()("adminF", po::value<std::string>()->default_value(""), "--adminFile Description--");
     options.add_options()("paramF", po::value<std::string>()->default_value(""), "--ParamFile Description--");
     options.add_options()("densityF", po::value<std::string>()->default_value(""), "--DensityFile Description--");
     options.add_options()("networkF", po::value<std::string>()->default_value(""), "--NetworkFile Description--");
